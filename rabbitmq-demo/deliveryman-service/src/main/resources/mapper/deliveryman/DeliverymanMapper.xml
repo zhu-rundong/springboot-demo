@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zrd.deliverymanservice.deliveryman.mapper.DeliverymanMapper">
+    
+    <!-- 通用查询映射结果 -->
+    <resultMap id="baseResultMap" type="com.zrd.deliverymanservice.deliveryman.vo.DeliverymanQueryVo">
+		<id column="id" property="id"/>
+		<result column="name" property="name"/>
+		<result column="status" property="status"/>
+		<result column="date" property="date"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="base_Column_List">
+        id, name, status, date
+    </sql>
+
+    <!-- 根据主键获取 骑手 对象 -->
+    <select id="getDeliverymanById" resultMap="baseResultMap">
+        select
+        <include refid="base_Column_List"/>
+        from t_deliveryman where id = #{id}
+    </select>
+
+    <!-- 查询 骑手 对象集合 -->
+    <select id="getDeliverymanList" resultMap="baseResultMap">
+        select
+        <include refid="base_Column_List"/>
+        from t_deliveryman
+    </select>
+
+</mapper>
