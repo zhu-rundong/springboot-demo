@@ -2,6 +2,7 @@ package com.zrd.orderservice.orderdetail.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -14,7 +15,6 @@ import com.zrd.orderservice.orderdetail.param.OrderDetailQueryParam;
 import com.zrd.orderservice.orderdetail.vo.OrderDetailQueryVo;
 
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
-import javax.annotation.Resource;
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -47,6 +46,7 @@ public class OrderDetailServiceImpl extends ServiceImpl<OrderDetailMapper, Order
         log.info("CreateOrder:OrderCreateVO:{}", orderDetailQueryVo);
         OrderDetailEntity orderDetailEntity = new OrderDetailEntity();
         BeanUtils.copyProperties(orderDetailQueryVo, orderDetailEntity);
+        orderDetailEntity.setOrderStatus(OrderStatus.ORDER_CREATING.getStatus());
         super.save(orderDetailEntity);
         Long detailEntityId = orderDetailEntity.getId();
         if(Objects.nonNull(detailEntityId)){
@@ -59,13 +59,28 @@ public class OrderDetailServiceImpl extends ServiceImpl<OrderDetailMapper, Order
             ConnectionFactory connectionFactory = new ConnectionFactory();
             connectionFactory.setHost("192.168.78.100");
             try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
+                //开启发送确认
+                channel.confirmSelect();
                 String messageToSend = objectMapper.writeValueAsString(orderMessageDTO);
-                //像商家微服务发送消息，确认商品信息
+                //设置单条消息过期时间
+                AMQP.BasicProperties properties = new AMQP.BasicProperties()
+                        .builder()
+                        .expiration("30000")
+                        .build();
                 channel.basicPublish(
                         "exchange.order.restaurant",
                         "key.restaurant",
                         null,
+                        //properties,
                         messageToSend.getBytes());
+                boolean waitForConfirms = channel.waitForConfirms();
+                if(waitForConfirms){
+                    //发送成功
+                    log.info("create order message confirm success");
+                }else{
+                    log.error("create order message confirm failed");
+                }
+
             }
         }
         return detailEntityId;

@@ -1,16 +1,13 @@
 package com.zrd.orderservice.orderdetail.vo;
 
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 import javax.validation.constraints.Size;
-import javax.validation.constraints.NotNull;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.util.Date;
 
 /**
  * @Description 订单 查询结果对象
@@ -45,18 +42,6 @@ public class OrderDetailQueryVo implements Serializable {
     @Size(max = 20, message = "骑手id长度不能超过 20 ！")
     private Long deliverymanId;
 
-    /**
-     * 积分奖励id
-     */
-    @Size(max = 20, message = "积分奖励id长度不能超过 20 ！")
-    @NotNull(message = "积分奖励id不能为空")
-    private Long rewardId;
-
-    /**
-     * 结算id
-     */
-    @Size(max = 20, message = "结算id长度不能超过 20 ！")
-    private Long settlementId;
 
     /**
      * 订单状态，订单状态，1：订单创建中，2：商家确认，3：骑手确认，4：订单创建成功，5：订单创建失败

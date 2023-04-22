@@ -10,10 +10,13 @@ import com.zrd.restaurantservice.rabbitmessge.dto.OrderMessageDTO;
 import com.zrd.restaurantservice.restaurant.service.RestaurantService;
 import com.zrd.restaurantservice.restaurant.vo.RestaurantQueryVo;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -31,41 +34,71 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
     private ProductService productService;
     @Resource
     private RestaurantService restaurantService;
+    @Autowired
+    private Channel channel;
 
     @Override
     @Async
     public void handleMessage() throws Exception {
         log.info("--------------------restaurant start listening message---------------------------");
-        ConnectionFactory connectionFactory = new ConnectionFactory();
-        connectionFactory.setHost("192.168.78.100");
-        try (Connection connection = connectionFactory.newConnection();
-             Channel channel = connection.createChannel()) {
-            /*---------------------restaurant---------------------*/
-            /* exchangeDeclare(名称,类型,是否持久化,是否自动删除,其他属性) */
-            channel.exchangeDeclare(
-                    "exchange.order.restaurant",
-                    BuiltinExchangeType.DIRECT,
-                    true,
-                    false,
-                    null);
+        /*---------------------接收死信队列的消息---------------------*/
+        //死信交换机
+        channel.exchangeDeclare(
+                "exchange.dlx",
+                BuiltinExchangeType.TOPIC,
+                true,
+                false,
+                null
+        );
+        channel.queueDeclare(
+                "queue.dlx",
+                true,
+                false,
+                false,
+                null
+        );
+        channel.queueBind(
+                "queue.dlx",
+                "exchange.dlx",
+                "#"
+        );
+        /*---------------------restaurant---------------------*/
+        Map<String,Object> args = new HashMap<>(16);
+        //设置队列中的消息过期时间
+        args.put("x-message-ttl",60000);
+        //设置队列最大长度
+        args.put("x-max-length",5);
+        //设置死信队列
+        args.put("x-dead-letter-exchange","exchange.dlx");
+        /* exchangeDeclare(名称,类型,是否持久化,是否自动删除,其他属性) */
+        channel.exchangeDeclare(
+                "exchange.order.restaurant",
+                BuiltinExchangeType.DIRECT,
+                true,
+                false,
+                null);
 
-            /* exchangeDeclare(名称,是否持久化,是否独占,是否自动删除,其他属性) */
-            channel.queueDeclare(
-                    "queue.restaurant",
-                    true,
-                    false,
-                    false,
-                    null);
-            //绑定
-            channel.queueBind(
-                    "queue.restaurant",
-                    "exchange.order.restaurant",
-                    "key.restaurant");
-            channel.basicConsume("queue.restaurant", true, deliverCallback, consumerTag -> {});
-            while (true) {
-                Thread.sleep(100000);
-            }
+        /* exchangeDeclare(名称,是否持久化,是否独占,是否自动删除,其他属性) */
+        channel.queueDeclare(
+                "queue.restaurant",
+                true,
+                false,
+                false,
+                args);
+        //绑定
+        channel.queueBind(
+                "queue.restaurant",
+                "exchange.order.restaurant",
+                "key.restaurant");
+        //消费端限流，一个消费端，最多推送 prefetchCount 条未确认的消息
+        //使用消费端限流，当mq所在应用服务集群重启，不会把所有消息都推送到一个应用服务
+        channel.basicQos(2);
+        //手动ACK
+        channel.basicConsume("queue.restaurant", false, deliverCallback, consumerTag -> {});
+        while (true) {
+            Thread.sleep(100000);
         }
+        
     }
 
 
@@ -81,7 +114,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
             if(Objects.isNull(productQueryVo)){
                 orderMessageDTO.setConfirmed(false);
                 log.error("The Product does not exist,ProductId:{}",orderMessageDTO.getProductId());
-                sendMessage(orderMessageDTO);
+                sendMessage(orderMessageDTO,message);
                 return;
             }
             //查询商家信息
@@ -89,7 +122,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
             if(Objects.isNull(restaurantQueryVo)){
                 orderMessageDTO.setConfirmed(false);
                 log.error("The restaurant does not exist,restaurantId:{}",productQueryVo.getRestaurantId());
-                sendMessage(orderMessageDTO);
+                sendMessage(orderMessageDTO,message);
                 return;
             }
             //商品和商家均有效
@@ -100,7 +133,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
             }else{
                 orderMessageDTO.setConfirmed(false);
             }
-            sendMessage(orderMessageDTO);
+            sendMessage(orderMessageDTO,message);
         }catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -112,13 +145,19 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
      * @author ZRD
      * @date 2023/3/19
      */
-    private void sendMessage(OrderMessageDTO orderMessageDTO) throws Exception{
-        ConnectionFactory connectionFactory = new ConnectionFactory();
-        connectionFactory.setHost("192.168.78.100");
-        try (Connection connection = connectionFactory.newConnection();
-             Channel channel = connection.createChannel()) {
-            String messageToSend = objectMapper.writeValueAsString(orderMessageDTO);
-            channel.basicPublish("exchange.order.restaurant", "key.order", null, messageToSend.getBytes());
-        }
+    private void sendMessage(OrderMessageDTO orderMessageDTO,Delivery message) throws Exception{
+        channel.addReturnListener(returnMessage -> {
+            //将无法路由的消息返回，处理消息返回后的业务逻辑
+            log.info("Return Message:{}",returnMessage);
+        });
+        //睡眠三秒，模拟业务逻辑处理
+        Thread.sleep(3000);
+        //消费确认，手动签收
+        channel.basicAck(message.getEnvelope().getDeliveryTag(),false);
+        //手动拒收，强制重回队列
+        //channel.basicNack(message.getEnvelope().getDeliveryTag(),false,true);
+        String messageToSend = objectMapper.writeValueAsString(orderMessageDTO);
+        //mandatory 为true，RabbitMQ才会处理无法路由的消息；为false，RabbitMQ将直接丢弃无法路由的消息
+        channel.basicPublish("exchange.order.restaurant", "key.order",true, null, messageToSend.getBytes());
     }
 }

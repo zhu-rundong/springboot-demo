@@ -22,11 +22,6 @@ public class RestaurantQueryVo implements Serializable {
     @Size(max = 20, message = "餐厅id长度不能超过 20 ！")
     private Long id;
 
-    /**
-     * 结算id
-     */
-    @Size(max = 20, message = "结算id长度不能超过 20 ！")
-    private Long settlementId;
 
     /**
      * 餐厅名称

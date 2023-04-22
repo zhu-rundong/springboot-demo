@@ -18,8 +18,5 @@ public class OrderMessageDTO {
     private Long deliverymanId;
     private Long productId;
     private Long accountId;
-    private Long settlementId;
-    private Long rewardId;
-    private BigDecimal rewardAmount;
     private Boolean confirmed;
 }

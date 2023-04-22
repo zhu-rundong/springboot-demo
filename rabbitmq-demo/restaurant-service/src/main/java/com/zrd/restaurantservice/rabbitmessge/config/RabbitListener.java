@@ -18,12 +18,12 @@ import java.util.concurrent.TimeoutException;
  * @Date 2023/3/19
  **/
 @Configuration
-public class RabbitConfig {
-    @Bean
-    public Channel rabbitChannel() throws IOException, TimeoutException {
-        ConnectionFactory connectionFactory = new ConnectionFactory();
-        connectionFactory.setHost("192.168.78.100");
-        Connection connection = connectionFactory.newConnection();
-        return connection.createChannel();
+public class RabbitListener {
+    @Autowired
+    private OrderDetailMessageService orderDetailMessageService;
+
+    @Autowired
+    public void startListenMessage() throws Exception {
+        orderDetailMessageService.handleMessage();
     }
 }
