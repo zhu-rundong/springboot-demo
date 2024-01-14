@@ -17,6 +17,10 @@ import com.zrd.orderservice.orderdetail.vo.OrderDetailQueryVo;
 import java.util.List;
 import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,8 +43,10 @@ public class OrderDetailServiceImpl extends ServiceImpl<OrderDetailMapper, Order
 
     @Autowired
     private OrderDetailMapper orderDetailMapper;
-
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
     ObjectMapper objectMapper = new ObjectMapper();
+
     @Override
     public Object addOrderDetail(OrderDetailQueryVo orderDetailQueryVo) throws Exception {
         log.info("CreateOrder:OrderCreateVO:{}", orderDetailQueryVo);
@@ -56,7 +62,21 @@ public class OrderDetailServiceImpl extends ServiceImpl<OrderDetailMapper, Order
             orderMessageDTO.setAccountId(orderDetailQueryVo.getAccountId());
             //当前订单状态为创建中
             orderMessageDTO.setOrderStatus(OrderStatus.ORDER_CREATING.getStatus());
-            ConnectionFactory connectionFactory = new ConnectionFactory();
+            String messageToSend = objectMapper.writeValueAsString(orderMessageDTO);
+            MessageProperties messageProperties = new MessageProperties();
+            Message message = new Message(messageToSend.getBytes(),messageProperties);
+            //使用 detailEntityId 作为消费对应关系，在 ConfirmCallback 时确认消费了那条信息
+            //Use with CorrelationData to correlate confirmations with sent message
+            CorrelationData correlationData = new CorrelationData();
+            correlationData.setId(String.valueOf(detailEntityId));
+            //发送消息
+            rabbitTemplate.send(
+                    "exchange.order.restaurant",
+                    "key.restaurant",
+                    message,
+                    correlationData);
+            log.info("create order message confirm success");
+            /*ConnectionFactory connectionFactory = new ConnectionFactory();
             connectionFactory.setHost("192.168.78.100");
             try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
                 //开启发送确认
@@ -81,7 +101,7 @@ public class OrderDetailServiceImpl extends ServiceImpl<OrderDetailMapper, Order
                     log.error("create order message confirm failed");
                 }
 
-            }
+            }*/
         }
         return detailEntityId;
     }

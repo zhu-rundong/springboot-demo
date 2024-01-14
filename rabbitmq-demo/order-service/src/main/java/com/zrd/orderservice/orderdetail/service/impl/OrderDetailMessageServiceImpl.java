@@ -3,11 +3,14 @@ package com.zrd.orderservice.orderdetail.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.*;
 import com.zrd.orderservice.orderdetail.dto.OrderMessageDTO;
+import com.zrd.orderservice.orderdetail.entity.OrderDetailEntity;
 import com.zrd.orderservice.orderdetail.enums.OrderStatus;
+import com.zrd.orderservice.orderdetail.mapper.OrderDetailMapper;
 import com.zrd.orderservice.orderdetail.service.OrderDetailMessageService;
 import com.zrd.orderservice.orderdetail.service.OrderDetailService;
 import com.zrd.orderservice.orderdetail.vo.OrderDetailQueryVo;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -28,52 +31,17 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
     ObjectMapper objectMapper = new ObjectMapper();
 
     @Resource
-    private OrderDetailService orderDetailService;
+    private OrderDetailMapper orderDetailMapper;
+
     @Override
     @Async
     public void handleMessage() throws Exception {
+        Thread.sleep(5000);
         log.info("--------------------order start listening message---------------------------");
         ConnectionFactory connectionFactory = new ConnectionFactory();
         connectionFactory.setHost("192.168.78.100");
         try (Connection connection = connectionFactory.newConnection();
              Channel channel = connection.createChannel()) {
-            /*
-             * 监听餐厅、骑手两个微服务发送的消息，餐厅、骑手两个微服务通过两个交换机和一个路由键路由消息到一个队列
-             */
-            /*---------------------restaurant---------------------*/
-            /* exchangeDeclare(名称,类型,是否持久化,是否自动删除,其他属性) */
-            channel.exchangeDeclare(
-                    "exchange.order.restaurant",
-                    BuiltinExchangeType.DIRECT,
-                    true,
-                    false,
-                    null);
-
-            /* exchangeDeclare(名称,是否持久化,是否独占,是否自动删除,其他属性) */
-            channel.queueDeclare(
-                    "queue.order",
-                    true,
-                    false,
-                    false,
-                    null);
-            //绑定
-            channel.queueBind(
-                    "queue.order",
-                    "exchange.order.restaurant",
-                    "key.order");
-
-            /*---------------------restaurant---------------------*/
-            channel.exchangeDeclare(
-                    "exchange.order.deliveryman",
-                    BuiltinExchangeType.DIRECT,
-                    true,
-                    false,
-                    null);
-            //绑定
-            channel.queueBind(
-                    "queue.order",
-                    "exchange.order.deliveryman",
-                    "key.order");
             channel.basicConsume("queue.order",true,deliverCallback,consumerTag->{});
             while (true) {
                 Thread.sleep(100000);
@@ -92,7 +60,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
             OrderMessageDTO orderMessageDTO = objectMapper.readValue(messageBody,
                     OrderMessageDTO.class);
             //从数据库中获取订单信息
-            OrderDetailQueryVo orderDetailVo = orderDetailService.getOrderDetailById(orderMessageDTO.getOrderId());
+            OrderDetailQueryVo orderDetailVo = orderDetailMapper.getOrderDetailById(orderMessageDTO.getOrderId());
             OrderStatus orderStatus = OrderStatus.getStatus(orderDetailVo.getOrderStatus());
             if(Objects.isNull(orderStatus)){
                 log.error("orderStatus is null,orderId:{}", orderMessageDTO.getOrderId());
@@ -105,7 +73,9 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
                         //订单商家已确认，并且价格不为空，更新数据库中订单状态为商家已确认
                         orderDetailVo.setOrderStatus(OrderStatus.RESTAURANT_CONFIRMED.getStatus());
                         orderDetailVo.setOrderPrice(orderMessageDTO.getPrice());
-                        orderDetailService.updateOrderDetail(orderDetailVo);
+                        OrderDetailEntity orderDetailEntity = new OrderDetailEntity();
+                        BeanUtils.copyProperties(orderDetailVo, orderDetailEntity);
+                        orderDetailMapper.updateById(orderDetailEntity);
                         try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
                             //商家发送消息给骑手
                             String messageToSendDeliverMan = objectMapper.writeValueAsString(orderMessageDTO);
@@ -126,7 +96,9 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
                         orderDetailVo.setDeliverymanId(orderDetailVo.getDeliverymanId());
                     }
                     orderDetailVo.setDate(new Timestamp(System.currentTimeMillis()));
-                    orderDetailService.updateOrderDetail(orderDetailVo);
+                    OrderDetailEntity orderDetailEntity = new OrderDetailEntity();
+                    BeanUtils.copyProperties(orderDetailVo, orderDetailEntity);
+                    orderDetailMapper.updateById(orderDetailEntity);
                     break;
                 default:
                     log.error("error orderStatus:{}",orderStatus);
