@@ -64,9 +64,9 @@ public class OrderDetailServiceImpl extends ServiceImpl<OrderDetailMapper, Order
             orderMessageDTO.setOrderStatus(OrderStatus.ORDER_CREATING.getStatus());
             String messageToSend = objectMapper.writeValueAsString(orderMessageDTO);
             MessageProperties messageProperties = new MessageProperties();
+            messageProperties.setExpiration("30000");
             Message message = new Message(messageToSend.getBytes(),messageProperties);
             //使用 detailEntityId 作为消费对应关系，在 ConfirmCallback 时确认消费了那条信息
-            //Use with CorrelationData to correlate confirmations with sent message
             CorrelationData correlationData = new CorrelationData();
             correlationData.setId(String.valueOf(detailEntityId));
             //发送消息
@@ -76,32 +76,6 @@ public class OrderDetailServiceImpl extends ServiceImpl<OrderDetailMapper, Order
                     message,
                     correlationData);
             log.info("create order message confirm success");
-            /*ConnectionFactory connectionFactory = new ConnectionFactory();
-            connectionFactory.setHost("192.168.78.100");
-            try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
-                //开启发送确认
-                channel.confirmSelect();
-                String messageToSend = objectMapper.writeValueAsString(orderMessageDTO);
-                //设置单条消息过期时间
-                AMQP.BasicProperties properties = new AMQP.BasicProperties()
-                        .builder()
-                        .expiration("30000")
-                        .build();
-                channel.basicPublish(
-                        "exchange.order.restaurant",
-                        "key.restaurant",
-                        null,
-                        //properties,
-                        messageToSend.getBytes());
-                boolean waitForConfirms = channel.waitForConfirms();
-                if(waitForConfirms){
-                    //发送成功
-                    log.info("create order message confirm success");
-                }else{
-                    log.error("create order message confirm failed");
-                }
-
-            }*/
         }
         return detailEntityId;
     }

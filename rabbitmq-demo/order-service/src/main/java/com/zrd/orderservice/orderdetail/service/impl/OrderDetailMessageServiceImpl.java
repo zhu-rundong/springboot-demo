@@ -33,7 +33,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
     @Resource
     private OrderDetailMapper orderDetailMapper;
 
-    @Override
+   /* @Override
     @Async
     public void handleMessage() throws Exception {
         Thread.sleep(5000);
@@ -42,23 +42,22 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
         connectionFactory.setHost("192.168.78.100");
         try (Connection connection = connectionFactory.newConnection();
              Channel channel = connection.createChannel()) {
-            channel.basicConsume("queue.order",true,deliverCallback,consumerTag->{});
+            //channel.basicConsume("queue.order",true,deliverCallback,consumerTag->{});
             while (true) {
                 Thread.sleep(100000);
             }
         }
-    }
+    }*/
 
 
-    DeliverCallback deliverCallback =  (consumerTag, message) -> {
+    public void handleMessage(OrderMessageDTO orderMessageDTO) {
         //获取消息
-        String messageBody = new String(message.getBody());
-        log.info("---------------------->order:deliverCallback:messageBody:{}", messageBody);
+        //String message = new String(messageBody);
+        log.info("---------------------->order:handleMessage:message:{}", orderMessageDTO.toString());
         ConnectionFactory connectionFactory = new ConnectionFactory();
         connectionFactory.setHost("192.168.78.100");
         try {
-            OrderMessageDTO orderMessageDTO = objectMapper.readValue(messageBody,
-                    OrderMessageDTO.class);
+            //OrderMessageDTO orderMessageDTO = objectMapper.readValue(message, OrderMessageDTO.class);
             //从数据库中获取订单信息
             OrderDetailQueryVo orderDetailVo = orderDetailMapper.getOrderDetailById(orderMessageDTO.getOrderId());
             OrderStatus orderStatus = OrderStatus.getStatus(orderDetailVo.getOrderStatus());
