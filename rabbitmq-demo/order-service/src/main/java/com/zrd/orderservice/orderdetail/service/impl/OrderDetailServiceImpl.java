@@ -103,8 +103,6 @@ public class OrderDetailServiceImpl extends ServiceImpl<OrderDetailMapper, Order
 
     @Override
     public OrderDetailQueryVo getOrderDetailById(Serializable id) throws Exception {
-		//OrderDetailQueryVo orderDetailQueryVo = orderDetailMapper.getOrderDetailById(id);
-
         OrderDetailEntity orderDetailEntity = super.getById(id);
         OrderDetailQueryVo orderDetailQueryVo = new OrderDetailQueryVo();
         BeanUtils.copyProperties(orderDetailEntity, orderDetailQueryVo);

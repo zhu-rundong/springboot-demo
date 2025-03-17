@@ -8,6 +8,8 @@
 		<result column="account_id" property="accountId"/>
 		<result column="product_id" property="productId"/>
 		<result column="deliveryman_id" property="deliverymanId"/>
+        <result column="settlement_id" property="settlementId"/>
+        <result column="reward_id" property="rewardId"/>
 		<result column="order_status" property="orderStatus"/>
 		<result column="order_address" property="orderAddress"/>
 		<result column="order_price" property="orderPrice"/>
@@ -16,7 +18,7 @@
 
     <!-- 通用查询结果列 -->
     <sql id="base_Column_List">
-        id, account_id, product_id, deliveryman_id, order_status, order_address, order_price, date
+        id, account_id, product_id, deliveryman_id, settlement_id, reward_id, order_status, order_address, order_price, date
     </sql>
 
     <!-- 根据主键获取 订单 对象 -->

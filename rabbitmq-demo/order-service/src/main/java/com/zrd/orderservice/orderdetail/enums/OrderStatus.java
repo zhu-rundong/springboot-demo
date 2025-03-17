@@ -12,8 +12,9 @@ public enum OrderStatus {
     ORDER_CREATING("1","订单创建中"),
     RESTAURANT_CONFIRMED("2","商家确认"),
     DELIVERYMAN_CONFIRMED("3","骑手确认"),
-    ORDER_CREATE_SUCCESS("4","订单创建成功"),
-    ORDER_CREATE_FAILED("5","订单创建失败")
+    SETTLEMENT_CONFIRMED("4","已结算"),
+    ORDER_CREATE_SUCCESS("5","订单创建成功"),
+    ORDER_CREATE_FAILED("6","订单创建失败")
     ;
     private String status;
 

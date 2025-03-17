@@ -42,9 +42,20 @@ public class OrderDetailQueryVo implements Serializable {
     @Size(max = 20, message = "骑手id长度不能超过 20 ！")
     private Long deliverymanId;
 
+    /**
+     * 结算id
+     */
+    @Size(max = 20, message = "结算id长度不能超过 20 ！")
+    private Long settlementId;
 
     /**
-     * 订单状态，订单状态，1：订单创建中，2：商家确认，3：骑手确认，4：订单创建成功，5：订单创建失败
+     * 积分奖励id
+     */
+    @Size(max = 20, message = "积分奖励id长度不能超过 20 ！")
+    private Long rewardId;
+
+    /**
+     * 订单状态，1：订单创建中，2：餐厅确认，3：骑手确认，4：已结算，5：订单创建成功，6：订单创建失败，
      */
     @Size(max = 1, message = "订单状态长度不能超过 1 ！")
     private String orderStatus;

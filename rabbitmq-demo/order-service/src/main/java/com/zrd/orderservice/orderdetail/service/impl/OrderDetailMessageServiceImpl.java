@@ -78,9 +78,13 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
                         try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
                             //商家发送消息给骑手
                             String messageToSendDeliverMan = objectMapper.writeValueAsString(orderMessageDTO);
-                            channel.basicPublish("exchange.order.deliveryman", "key.deliveryman", null,
-                                    messageToSendDeliverMan.getBytes());
+                            channel.basicPublish("exchange.order.deliveryman", "key.deliveryman", null, messageToSendDeliverMan.getBytes());
                         }
+                    }else{
+                        orderDetailVo.setOrderStatus(OrderStatus.ORDER_CREATE_FAILED.getStatus());
+                        OrderDetailEntity orderDetailEntity = new OrderDetailEntity();
+                        BeanUtils.copyProperties(orderDetailVo, orderDetailEntity);
+                        orderDetailMapper.updateById(orderDetailEntity);
                     }
                     break;
                 case RESTAURANT_CONFIRMED:
