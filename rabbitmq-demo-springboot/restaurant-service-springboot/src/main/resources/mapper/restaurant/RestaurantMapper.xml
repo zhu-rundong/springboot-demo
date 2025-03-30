@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zrd.restaurantservice.restaurant.mapper.RestaurantMapper">
+    
+    <!-- 通用查询映射结果 -->
+    <resultMap id="baseResultMap" type="com.zrd.restaurantservice.restaurant.vo.RestaurantQueryVo">
+		<id column="id" property="id"/>
+		<result column="name" property="name"/>
+		<result column="address" property="address"/>
+		<result column="status" property="status"/>
+		<result column="date" property="date"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="base_Column_List">
+        id, name, address, status, date
+    </sql>
+
+    <!-- 根据主键获取 餐厅 对象 -->
+    <select id="getRestaurantById" resultMap="baseResultMap">
+        select
+        <include refid="base_Column_List"/>
+        from t_restaurant where id = #{id}
+    </select>
+
+    <!-- 查询 餐厅 对象集合 -->
+    <select id="getRestaurantList" resultMap="baseResultMap">
+        select
+        <include refid="base_Column_List"/>
+        from t_restaurant
+    </select>
+
+</mapper>
