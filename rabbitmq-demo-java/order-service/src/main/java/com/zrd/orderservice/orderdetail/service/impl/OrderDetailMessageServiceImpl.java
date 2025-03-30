@@ -93,9 +93,9 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
                         //更新状态为订单创建失败
                         orderDetailVo.setOrderStatus(OrderStatus.ORDER_CREATE_FAILED.getStatus());
                     }else{
-                        //更新状态为订单创建成功
+                        //更新状态为骑手已确认
                         orderDetailVo.setDeliverymanId(orderMessageDTO.getDeliverymanId());
-                        orderDetailVo.setOrderStatus(OrderStatus.ORDER_CREATE_SUCCESS.getStatus());
+                        orderDetailVo.setOrderStatus(OrderStatus.DELIVERYMAN_CONFIRMED.getStatus());
                         orderDetailVo.setDeliverymanId(orderDetailVo.getDeliverymanId());
                     }
                     orderDetailVo.setDate(new Timestamp(System.currentTimeMillis()));
@@ -106,6 +106,37 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
                         //商家发送消息给结算服务
                         String messageToSendDeliverMan = objectMapper.writeValueAsString(orderMessageDTO);
                         channel.basicPublish("exchange.order.settlement", "key.settlement", null, messageToSendDeliverMan.getBytes());
+                    }
+                    break;
+                case DELIVERYMAN_CONFIRMED:
+                    //当前订单状态：骑手已确认
+                    if(Objects.isNull(orderMessageDTO.getSettlementId())){
+                        //更新状态为订单创建失败
+                        orderDetailVo.setOrderStatus(OrderStatus.ORDER_CREATE_FAILED.getStatus());
+                    }else{
+                        orderDetailVo.setSettlementId(orderMessageDTO.getSettlementId());
+                        orderDetailVo.setOrderStatus(OrderStatus.SETTLEMENT_CONFIRMED.getStatus());
+                    }
+                    orderDetailVo.setDate(new Timestamp(System.currentTimeMillis()));
+                    OrderDetailEntity orderDetailEntity1 = new OrderDetailEntity();
+                    BeanUtils.copyProperties(orderDetailVo, orderDetailEntity1);
+                    orderDetailMapper.updateById(orderDetailEntity1);
+                    try (Connection connection = connectionFactory.newConnection(); Channel channel = connection.createChannel()) {
+                        //商家发送消息给结算服务
+                        String messageToSendDeliverMan = objectMapper.writeValueAsString(orderMessageDTO);
+                        channel.basicPublish("exchange.order.reward", "key.reward", null, messageToSendDeliverMan.getBytes());
+                    }
+                    break;
+                case SETTLEMENT_CONFIRMED:
+                    //已结算
+                    if(Objects.isNull(orderMessageDTO.getRewardId())){
+                        orderDetailVo.setOrderStatus(OrderStatus.ORDER_CREATE_FAILED.getStatus());
+                    }else{
+                        orderDetailVo.setRewardId(orderMessageDTO.getRewardId());
+                        orderDetailVo.setOrderStatus(OrderStatus.ORDER_CREATE_SUCCESS.getStatus());
+                        OrderDetailEntity orderDetailEntity2 = new OrderDetailEntity();
+                        BeanUtils.copyProperties(orderDetailVo, orderDetailEntity2);
+                        orderDetailMapper.updateById(orderDetailEntity2);
                     }
                     break;
                 default:

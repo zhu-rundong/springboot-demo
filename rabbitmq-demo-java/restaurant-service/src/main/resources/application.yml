@@ -4,7 +4,7 @@ server:
 spring:
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/springboot_rabbit?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8&useSSL=false
+    url: jdbc:mysql://localhost:3306/springboot_rabbit?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&useSSL=false
     username: root
     password: admin
     type: com.alibaba.druid.pool.DruidDataSource

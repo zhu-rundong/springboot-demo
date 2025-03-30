@@ -1,4 +1,4 @@
-package com.zrd.restaurantservice.rabbitmessge.dto;
+package com.zrd.rewardservice.rabbitmessage.dto;
 
 import lombok.Data;
 

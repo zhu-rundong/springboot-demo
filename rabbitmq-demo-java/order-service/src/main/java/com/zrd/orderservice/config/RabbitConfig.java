@@ -108,6 +108,21 @@ public class RabbitConfig {
         );
     }
     @Bean
+    public Exchange exchangeReward(){
+        return new TopicExchange("exchange.order.reward");
+    }
+
+    @Bean
+    public Binding bindingReward(){
+        return new Binding(
+                "queue.order",
+                Binding.DestinationType.QUEUE,
+                "exchange.order.reward",
+                "key.order",
+                null
+        );
+    }
+    @Bean
     public RabbitTemplate rabbitTemplate(CachingConnectionFactory connectionFactory){
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMandatory(true);

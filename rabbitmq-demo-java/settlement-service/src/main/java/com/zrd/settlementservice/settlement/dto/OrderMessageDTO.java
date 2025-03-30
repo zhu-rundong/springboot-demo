@@ -27,7 +27,7 @@ public class OrderMessageDTO {
     //结算id
     private Long settlementId;
     //积分奖励id
-    private Integer rewardId;
+    private Long rewardId;
     //积分奖励数量
     private BigDecimal rewardAmount;
     //确认
