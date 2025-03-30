@@ -147,7 +147,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
      */
     private void sendMessage(OrderMessageDTO orderMessageDTO,Delivery message) throws Exception{
         channel.addReturnListener(returnMessage -> {
-            //将无法路由的消息返回，处理消息返回后的业务逻辑
+            //返回无法路由的消息，处理消息返回后的业务逻辑
             log.info("Return Message:{}",returnMessage);
         });
         //睡眠三秒，模拟业务逻辑处理
@@ -157,7 +157,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
         //手动拒收，强制重回队列
         //channel.basicNack(message.getEnvelope().getDeliveryTag(),false,true);
         String messageToSend = objectMapper.writeValueAsString(orderMessageDTO);
-        //mandatory 为true，RabbitMQ才会处理无法路由的消息；为false，RabbitMQ将直接丢弃无法路由的消息
+        //mandatory 为true，RabbitMQ才会处理无法路由的消息；为false，RabbitMQ 将直接丢弃无法路由的消息
         channel.basicPublish("exchange.order.restaurant", "key.order",true, null, messageToSend.getBytes());
     }
 }
