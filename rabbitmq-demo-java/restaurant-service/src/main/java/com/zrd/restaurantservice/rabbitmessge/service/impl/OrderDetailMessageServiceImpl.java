@@ -62,14 +62,14 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
                 "exchange.dlx",
                 "#"
         );
-        /*---------------------restaurant---------------------*/
         Map<String,Object> args = new HashMap<>(16);
-        //设置队列中的消息过期时间
+        //设置队列中的所有消息的过期时间
         args.put("x-message-ttl",60000);
         //设置队列最大长度
         args.put("x-max-length",5);
         //设置死信队列
         args.put("x-dead-letter-exchange","exchange.dlx");
+        /*---------------------restaurant---------------------*/
         /* exchangeDeclare(名称,类型,是否持久化,是否自动删除,其他属性) */
         channel.exchangeDeclare(
                 "exchange.order.restaurant",

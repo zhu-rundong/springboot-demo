@@ -63,6 +63,7 @@ public class OrderDetailServiceImpl extends ServiceImpl<OrderDetailMapper, Order
             //当前订单状态为创建中
             orderMessageDTO.setOrderStatus(OrderStatus.ORDER_CREATING.getStatus());
             String messageToSend = objectMapper.writeValueAsString(orderMessageDTO);
+            //设置消息过期时间，单位毫秒
             MessageProperties messageProperties = new MessageProperties();
             messageProperties.setExpiration("30000");
             Message message = new Message(messageToSend.getBytes(),messageProperties);
