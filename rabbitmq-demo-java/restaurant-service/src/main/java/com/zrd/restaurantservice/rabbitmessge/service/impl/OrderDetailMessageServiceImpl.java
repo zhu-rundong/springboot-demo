@@ -90,7 +90,8 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
                 "queue.restaurant",
                 "exchange.order.restaurant",
                 "key.restaurant");
-        //消费端限流，一个消费端，最多推送 prefetchCount 条未确认的消息
+        //消费端限流，一个消费端，最多推送 prefetchCount 条未确认的消息，
+        // Qos（服务质量保证），保证了一定数目的消息未被确认前（必须使用手动确认），不消费新的消息
         //使用消费端限流，当mq所在应用服务集群重启，不会把所有消息都推送到一个应用服务
         channel.basicQos(2);
         //手动ACK，autoAck为false
