@@ -93,7 +93,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
         //消费端限流，一个消费端，最多推送 prefetchCount 条未确认的消息
         //使用消费端限流，当mq所在应用服务集群重启，不会把所有消息都推送到一个应用服务
         channel.basicQos(2);
-        //手动ACK
+        //手动ACK，autoAck为false
         channel.basicConsume("queue.restaurant", false, deliverCallback, consumerTag -> {});
         while (true) {
             Thread.sleep(100000);
@@ -152,7 +152,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
         });
         //睡眠三秒，模拟业务逻辑处理
         Thread.sleep(3000);
-        //消费确认，手动签收
+        //消费确认，手动签收消息
         channel.basicAck(message.getEnvelope().getDeliveryTag(),false);
         //手动拒收，强制重回队列
         //channel.basicNack(message.getEnvelope().getDeliveryTag(),false,true);
