@@ -85,6 +85,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
             //默认取第一个
             orderMessageDTO.setDeliverymanId(deliverymanList.get(0).getId());
             sendMessage(orderMessageDTO);
+            log.info("---------------------->deliveryman send message success");
         }catch (Exception e) {
             throw new RuntimeException(e);
         }

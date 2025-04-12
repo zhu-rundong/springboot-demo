@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 @SpringBootTest
-class OrderServiceApplicationTests {
+class OrderServiceSpringBootApplicationTests {
     @Autowired
     private OrderDetailService orderDetailService;
     @Autowired

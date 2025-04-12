@@ -50,6 +50,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
             orderMessageDTO.setSettlementId(settlementId);
             log.info("handleOrderService:settlementOrderDTO:{}", orderMessageDTO);
             sendMessage(orderMessageDTO);
+            log.info("--------------------settlement end listening message---------------------------");
         } catch (Exception e){
             log.error("-------------------->settlement:deliverCallback:messageBody:{}", ExceptionUtils.getStackTrace(e));
         }
@@ -82,7 +83,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
             channel.queueBind(
                     "queue.settlement",
                     "exchange.order.settlement",
-                    "key.settlement");
+                    "");
             channel.basicConsume("queue.settlement", true, deliverCallback, consumerTag -> {});
             while (true) {
                 Thread.sleep(100000);
