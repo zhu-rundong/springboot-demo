@@ -8,7 +8,15 @@ import com.zrd.deliverymanservice.deliveryman.vo.DeliverymanQueryVo;
 import com.zrd.deliverymanservice.rabbitmessge.dto.OrderMessageDTO;
 import com.zrd.deliverymanservice.rabbitmessge.enums.CommonStatus;
 import com.zrd.deliverymanservice.rabbitmessge.service.OrderDetailMessageService;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.annotation.Exchange;
+import org.springframework.amqp.rabbit.annotation.Queue;
+import org.springframework.amqp.rabbit.annotation.QueueBinding;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -29,8 +37,9 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
 
     @Resource
     private DeliverymanService deliverymanService;
-
-    @Override
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+    /*@Override
     @Async
     public void handleMessage() throws Exception {
         log.info("--------------------deliveryman start listening message---------------------------");
@@ -38,8 +47,8 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
         connectionFactory.setHost("192.168.78.100");
         try (Connection connection = connectionFactory.newConnection();
              Channel channel = connection.createChannel()) {
-            /*---------------------restaurant---------------------*/
-            /* exchangeDeclare(名称,类型,是否持久化,是否自动删除,其他属性) */
+            *//*---------------------restaurant---------------------*//*
+            *//* exchangeDeclare(名称,类型,是否持久化,是否自动删除,其他属性) *//*
             channel.exchangeDeclare(
                     "exchange.order.deliveryman",
                     BuiltinExchangeType.DIRECT,
@@ -47,7 +56,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
                     false,
                     null);
 
-            /* exchangeDeclare(名称,是否持久化,是否独占,是否自动删除,其他属性) */
+            *//* exchangeDeclare(名称,是否持久化,是否独占,是否自动删除,其他属性) *//*
             channel.queueDeclare(
                     "queue.deliveryman",
                     true,
@@ -64,32 +73,38 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
                 Thread.sleep(100000);
             }
         }
-    }
+    }*/
 
-
-    DeliverCallback deliverCallback =  (consumerTag, message) -> {
-        //获取消息
-        String messageBody = new String(message.getBody());
-        log.info("---------------------->deliveryman:deliverCallback:messageBody:{}", messageBody);
+    @RabbitListener(bindings = {
+            @QueueBinding(
+                    value = @Queue("queue.deliveryman"),
+                    exchange = @Exchange("exchange.order.deliveryman"),
+                    key = "key.deliveryman"
+            )
+    })
+    public void handleMessage(String messageStr) {
+        log.info("---------------------->deliveryman:deliverCallback:messageBody:{}", messageStr);
         try {
-            OrderMessageDTO orderMessageDTO = objectMapper.readValue(messageBody, OrderMessageDTO.class);
+            OrderMessageDTO orderMessageDTO = objectMapper.readValue(messageStr, OrderMessageDTO.class);
             //查询有效的骑手
             DeliverymanQueryParam deliverymanQueryParam = new DeliverymanQueryParam();
             deliverymanQueryParam.setStatus(CommonStatus.STATUS_YES.getStatus());
             List<DeliverymanQueryVo> deliverymanList = deliverymanService.getDeliverymanList(deliverymanQueryParam);
             if(CollectionUtils.isEmpty(deliverymanList)){
                 log.error("The deliveryman does not exist.");
-                sendMessage(orderMessageDTO);
+                //sendMessage(orderMessageDTO);
+                rabbitTemplate.send("exchange.order.restaurant", "key.order", new Message(objectMapper.writeValueAsString(orderMessageDTO).getBytes()));
                 return;
             }
             //默认取第一个
             orderMessageDTO.setDeliverymanId(deliverymanList.get(0).getId());
-            sendMessage(orderMessageDTO);
+            rabbitTemplate.send("exchange.order.restaurant", "key.order", new Message(objectMapper.writeValueAsString(orderMessageDTO).getBytes()));
+            //sendMessage(orderMessageDTO);
             log.info("---------------------->deliveryman send message success");
         }catch (Exception e) {
             throw new RuntimeException(e);
         }
-    };
+    }
 
     /**
      * @description 发送消息
@@ -97,7 +112,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
      * @author ZRD
      * @date 2023/3/19
      */
-    private void sendMessage(OrderMessageDTO orderMessageDTO) throws Exception{
+    /*private void sendMessage(OrderMessageDTO orderMessageDTO) throws Exception{
         ConnectionFactory connectionFactory = new ConnectionFactory();
         connectionFactory.setHost("192.168.78.100");
         try (Connection connection = connectionFactory.newConnection();
@@ -105,5 +120,5 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
             String messageToSend = objectMapper.writeValueAsString(orderMessageDTO);
             channel.basicPublish("exchange.order.restaurant", "key.order", null, messageToSend.getBytes());
         }
-    }
+    }*/
 }

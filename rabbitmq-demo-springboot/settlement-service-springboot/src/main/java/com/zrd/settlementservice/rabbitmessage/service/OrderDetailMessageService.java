@@ -13,5 +13,5 @@ public interface OrderDetailMessageService {
      * @author ZRD
      * @date 2023/3/12
      */
-    void handleMessage() throws Exception;
+    //void handleMessage() throws Exception;
 }

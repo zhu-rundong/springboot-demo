@@ -115,7 +115,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
                     OrderDetailEntity orderDetailEntity = new OrderDetailEntity();
                     BeanUtils.copyProperties(orderDetailVo, orderDetailEntity);
                     orderDetailMapper.updateById(orderDetailEntity);
-                    rabbitTemplate.send("exchange.order.settlement", "key.settlement", new Message(objectMapper.writeValueAsString(orderMessageDTO).getBytes()));
+                    rabbitTemplate.send("exchange.order.settlement", "", new Message(objectMapper.writeValueAsString(orderMessageDTO).getBytes()));
                     break;
                 case DELIVERYMAN_CONFIRMED:
                     //当前订单状态：骑手已确认

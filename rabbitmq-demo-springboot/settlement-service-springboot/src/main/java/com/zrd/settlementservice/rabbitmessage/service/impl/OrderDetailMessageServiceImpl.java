@@ -9,6 +9,13 @@ import com.zrd.settlementservice.settlement.service.SettlementService;
 import com.zrd.settlementservice.settlement.vo.SettlementQueryVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.springframework.amqp.core.ExchangeTypes;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.annotation.Exchange;
+import org.springframework.amqp.rabbit.annotation.Queue;
+import org.springframework.amqp.rabbit.annotation.QueueBinding;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -29,12 +36,19 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
 
     @Autowired
     private SettlementService settlementService;
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
-    DeliverCallback deliverCallback = (consumerTag, message) -> {
-        String messageBody = new String(message.getBody());
-        log.info("---------------------->settlement:deliverCallback:messageBody:{}", messageBody);
+    @RabbitListener(bindings = {
+            @QueueBinding(
+                    value = @Queue("queue.settlement"),
+                    exchange = @Exchange(value = "exchange.order.settlement", type = ExchangeTypes.FANOUT)
+            )
+    })
+    public void handleMessage(String messageStr) {
+        log.info("---------------------->settlement:deliverCallback:messageBody:{}", messageStr);
         try {
-            OrderMessageDTO orderMessageDTO = objectMapper.readValue(messageBody, OrderMessageDTO.class);
+            OrderMessageDTO orderMessageDTO = objectMapper.readValue(messageStr, OrderMessageDTO.class);
             SettlementQueryVo settlementVo = new SettlementQueryVo();
             settlementVo.setAmount(orderMessageDTO.getPrice());
             settlementVo.setDate(new Timestamp(System.currentTimeMillis()));
@@ -49,13 +63,14 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
             Long settlementId = settlementService.addSettlement(settlementVo);
             orderMessageDTO.setSettlementId(settlementId);
             log.info("handleOrderService:settlementOrderDTO:{}", orderMessageDTO);
-            sendMessage(orderMessageDTO);
+            //sendMessage(orderMessageDTO);
+            rabbitTemplate.send("exchange.settlement.order", "", new Message(objectMapper.writeValueAsString(orderMessageDTO).getBytes()));
             log.info("--------------------settlement end listening message---------------------------");
         } catch (Exception e){
             log.error("-------------------->settlement:deliverCallback:messageBody:{}", ExceptionUtils.getStackTrace(e));
         }
     };
-    @Async
+   /* @Async
     @Override
     public void handleMessage() throws Exception {
         log.info("--------------------settlement start listening message---------------------------");
@@ -63,8 +78,8 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
         connectionFactory.setHost("192.168.78.100");
         try (Connection connection = connectionFactory.newConnection();
              Channel channel = connection.createChannel()) {
-            /*---------------------restaurant---------------------*/
-            /* exchangeDeclare(名称,类型,是否持久化,是否自动删除,其他属性) */
+            *//*---------------------restaurant---------------------*//*
+            *//* exchangeDeclare(名称,类型,是否持久化,是否自动删除,其他属性) *//*
             channel.exchangeDeclare(
                     "exchange.settlement.order",
                     BuiltinExchangeType.FANOUT,
@@ -72,7 +87,7 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
                     false,
                     null);
 
-            /* exchangeDeclare(名称,是否持久化,是否独占,是否自动删除,其他属性) */
+            *//* exchangeDeclare(名称,是否持久化,是否独占,是否自动删除,其他属性) *//*
             channel.queueDeclare(
                     "queue.settlement",
                     true,
@@ -91,12 +106,12 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
         }
     }
 
-    /**
+    *//**
      * @description 发送消息
      * @param orderMessageDTO 消息对象
      * @author ZRD
      * @date 2023/3/19
-     */
+     *//*
     private void sendMessage(OrderMessageDTO orderMessageDTO) throws Exception{
         ConnectionFactory connectionFactory = new ConnectionFactory();
         connectionFactory.setHost("192.168.78.100");
@@ -105,5 +120,5 @@ public class OrderDetailMessageServiceImpl implements OrderDetailMessageService 
             String messageToSend = objectMapper.writeValueAsString(orderMessageDTO);
             channel.basicPublish("exchange.settlement.order", "key.order", null, messageToSend.getBytes());
         }
-    }
+    }*/
 }
